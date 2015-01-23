@@ -4,6 +4,10 @@ import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 
+import java.io.*;
+import java.net.MalformedURLException;
+import java.rmi.*;
+
 /**
  * A Tic Tac Toe application.
  * Currently this is a stand-alone application where
@@ -14,6 +18,7 @@ import java.awt.*;
 public class TicTacToe extends JFrame implements ListSelectionListener
 {
   private static final int BOARD_SIZE = 15;
+  private static final String ADRESSE = "";
   private final BoardModel boardModel;
   private final JTable board;
   private final JLabel statusLabel = new JLabel();
@@ -22,6 +27,7 @@ public class TicTacToe extends JFrame implements ListSelectionListener
 
   public static void main(String args[])
   {
+	
     new TicTacToe();
   }
 
@@ -76,14 +82,68 @@ public class TicTacToe extends JFrame implements ListSelectionListener
    */
   public void valueChanged(ListSelectionEvent e)
   {
-    if (e.getValueIsAdjusting())
-      return;
-    int x = board.getSelectedColumn();
-    int y = board.getSelectedRow();
-    if (x == -1 || y == -1 || !boardModel.isEmpty(x, y))
-      return;
-    if (boardModel.setCell(x, y, playerMarks[currentPlayer]))
-      setStatusMessage("Player " + playerMarks[currentPlayer] + " won!");
-    currentPlayer = 1 - currentPlayer; // The next turn is by the other player.
+	  
+	  // Oppdatere mitt brett på vanlig måte
+	  
+	  // Fortelle motstanderen at jeg har tatt et trekk
+	
+//	System.setSecurityManager( new RMISecurityManager() );
+//	  
+//    if (e.getValueIsAdjusting())
+//      return;
+//    int x = board.getSelectedColumn();
+//    int y = board.getSelectedRow();
+//    updateBoardModel(x, y);
+//    
+//  	sendMove(x, y);
+//    
+//    receiveMove();
+    
+    
   }
+
+private void receiveMove() {
+	int x;
+	int y;
+	try {
+		String url = "rmi://" + ADRESSE + "/MoveServer";
+		MoveServer server = (MoveServer)Naming.lookup(url);
+		Move newMove = server.makeMove();
+		
+		x = newMove.getX();
+	    y = newMove.getY();
+	    updateBoardModel(x, y);
+		
+	} catch (MalformedURLException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	} catch (RemoteException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	} catch (NotBoundException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	}
+}
+
+	private void updateBoardModel(int x, int y) {
+		if (x == -1 || y == -1 || !boardModel.isEmpty(x, y))
+	      return;
+	    if (boardModel.setCell(x, y, playerMarks[currentPlayer]))
+	      setStatusMessage("Player " + playerMarks[currentPlayer] + " won!");
+	    currentPlayer = 1 - currentPlayer; // The next turn is by the other player.
+	}
+
+	private void sendMove(int x, int y) {
+		try {
+	  		MoveServerImpl server = new MoveServerImpl(x,y);
+	  		Naming.rebind("rmi://" + ADRESSE + "/MoveServer", server);
+	  	} catch (RemoteException e2) {
+	  		// TODO Auto-generated catch block
+	  		e2.printStackTrace();
+	  	} catch (MalformedURLException e2) {
+	  		// TODO Auto-generated catch block
+	  		e2.printStackTrace();
+	  	}
+	}
 }
