@@ -3,10 +3,10 @@ Programming assignments from the NTNU course TDT4190 Distributed Systems. Made b
 
 First assignment is Tic Tac Toe Java RMI.
 Linux/Mac:
-rmiregistry port &
-java TicTacToe loacalhost:port
-Type server
-New terminal
-java TicTacToe localhost:port
-Type client
+rmiregistry port &.
+java TicTacToe loacalhost:port.
+Type server.
+New terminal.
+java TicTacToe localhost:port.
+Type client.
 PLAY!
