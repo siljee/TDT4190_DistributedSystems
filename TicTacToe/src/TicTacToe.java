@@ -2,11 +2,12 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.DefaultTableCellRenderer;
-import java.awt.*;
 
+import java.awt.*;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.rmi.*;
+import java.rmi.server.*;
 
 /**
  * A Tic Tac Toe application.
@@ -18,20 +19,41 @@ import java.rmi.*;
 public class TicTacToe extends JFrame implements ListSelectionListener
 {
   private static final int BOARD_SIZE = 15;
-  private static final String ADRESSE = "";
+  private static final String ADRESSE = "localhost:1234";
   private final BoardModel boardModel;
   private final JTable board;
   private final JLabel statusLabel = new JLabel();
   private final char playerMarks[] = {'X', 'O'};
   private int currentPlayer = 0; // Player to set the next mark.
+  private boolean initialized = false;
+  private MoveServer opponent = null;
+  private MoveServerImpl myself = null;
+  
 
   public static void main(String args[])
   {
+	  BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+	  String input="";
+	try {
+		input = br.readLine();
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	  
+//	if(System.getSecurityManager()==null){
+//		System.setSecurityManager(new SecurityManager());
+//	}
 	
-    new TicTacToe();
+	boolean server = true;
+	System.out.println(input.equalsIgnoreCase("server"));
+	if(!input.equalsIgnoreCase("server")){
+		server = false;
+	}
+    new TicTacToe(server);
   }
 
-  public TicTacToe()
+  public TicTacToe(boolean server)
   {
     super("TDT4190: Tic Tac Toe");
 
@@ -65,6 +87,43 @@ public class TicTacToe extends JFrame implements ListSelectionListener
     int centerY = (int)(Toolkit.getDefaultToolkit().getScreenSize().getHeight() - getSize().height) / 2;
     setLocation(centerX, centerY);
     setVisible(true);
+    
+    try {
+		myself = new MoveServerImpl();
+	} catch (RemoteException e1) {
+		// TODO Auto-generated catch block
+		e1.printStackTrace();
+	}
+    
+    if (server) {
+    	System.out.println("Starting server");
+		try {
+			Naming.rebind("rmi://" + ADRESSE + "/MoveServer", myself);
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	} else {
+		System.out.println("Starting client");
+		String url = "rmi://"+ADRESSE+"/MoveServer";
+	    try {
+			opponent = (MoveServer)Naming.lookup(url);
+			opponent.startGame(myself);
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotBoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+    
   }
 
   void setStatusMessage(String status)
@@ -82,68 +141,47 @@ public class TicTacToe extends JFrame implements ListSelectionListener
    */
   public void valueChanged(ListSelectionEvent e)
   {
+		// Oppdatere mitt brett på vanlig måte
+		  if (e.getValueIsAdjusting())
+		      return;
+		    int x = board.getSelectedColumn();
+		    int y = board.getSelectedRow();
+		    updateBoardModel(x, y); 
+		    try {
+				opponent.updateBoard(x, y, playerMarks[1-currentPlayer]);
+			} catch (RemoteException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 	  
-	  // Oppdatere mitt brett på vanlig måte
-	  
-	  // Fortelle motstanderen at jeg har tatt et trekk
-	
-//	System.setSecurityManager( new RMISecurityManager() );
-//	  
-//    if (e.getValueIsAdjusting())
-//      return;
-//    int x = board.getSelectedColumn();
-//    int y = board.getSelectedRow();
-//    updateBoardModel(x, y);
-//    
-//  	sendMove(x, y);
-//    
-//    receiveMove();
-    
-    
   }
-
-private void receiveMove() {
-	int x;
-	int y;
-	try {
-		String url = "rmi://" + ADRESSE + "/MoveServer";
-		MoveServer server = (MoveServer)Naming.lookup(url);
-		Move newMove = server.makeMove();
-		
-		x = newMove.getX();
-	    y = newMove.getY();
-	    updateBoardModel(x, y);
-		
-	} catch (MalformedURLException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	} catch (RemoteException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	} catch (NotBoundException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	}
-}
-
-	private void updateBoardModel(int x, int y) {
+	
+  private void updateBoardModel(int x, int y) {
 		if (x == -1 || y == -1 || !boardModel.isEmpty(x, y))
 	      return;
 	    if (boardModel.setCell(x, y, playerMarks[currentPlayer]))
 	      setStatusMessage("Player " + playerMarks[currentPlayer] + " won!");
 	    currentPlayer = 1 - currentPlayer; // The next turn is by the other player.
 	}
+  
+  public class MoveServerImpl extends UnicastRemoteObject implements MoveServer{
+	  
+	  protected MoveServerImpl() throws RemoteException {
+		  
+	  }
+	  
+	  @Override
+	  public void startGame(MoveServer opponentPlayer) throws RemoteException{
+		  opponent = opponentPlayer;
+	  }
+	  
+	  @Override
+	  public void updateBoard(int x, int y, char symbol) throws RemoteException{
+		  if (boardModel.setCell(x, y, symbol))
+		      setStatusMessage("Player " + symbol + " won!");
+	  }
 
-	private void sendMove(int x, int y) {
-		try {
-	  		MoveServerImpl server = new MoveServerImpl(x,y);
-	  		Naming.rebind("rmi://" + ADRESSE + "/MoveServer", server);
-	  	} catch (RemoteException e2) {
-	  		// TODO Auto-generated catch block
-	  		e2.printStackTrace();
-	  	} catch (MalformedURLException e2) {
-	  		// TODO Auto-generated catch block
-	  		e2.printStackTrace();
-	  	}
-	}
+  }
+
+	
 }
