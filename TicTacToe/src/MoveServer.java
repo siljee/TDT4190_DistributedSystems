@@ -2,6 +2,7 @@ import java.rmi.*;
 
 public interface MoveServer extends Remote {
 	
-	public Move makeMove() throws RemoteException;
+	void updateBoard(int x, int y, char symbol) throws RemoteException;
+	void startGame(MoveServer opponent) throws RemoteException;
 
 }
