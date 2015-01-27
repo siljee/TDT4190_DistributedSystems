@@ -29,6 +29,7 @@ public class TicTacToe extends JFrame implements ListSelectionListener
   private MoveServer opponent = null;
   private MoveServerImpl myself = null;
   private int currentPlayerMark = 0;
+  private boolean gameFinished = false;
   
 
   public static void main(String args[])
@@ -141,7 +142,7 @@ public class TicTacToe extends JFrame implements ListSelectionListener
 		  currentPlayerMark = currentPlayer;
 		  gameStarted = true;
 	  }
-	  if (currentPlayerMark==currentPlayer) {
+	  if (currentPlayerMark==currentPlayer && gameFinished==false) {
 		  if (e.getValueIsAdjusting())
 		      return;
 		    int x = board.getSelectedColumn();
@@ -159,8 +160,10 @@ public class TicTacToe extends JFrame implements ListSelectionListener
   private void updateBoardModel(int x, int y) {
 		if (x == -1 || y == -1 || !boardModel.isEmpty(x, y))
 	      return;
-	    if (boardModel.setCell(x, y, playerMarks[currentPlayer]))
-	      setStatusMessage("Player " + playerMarks[currentPlayer] + " won!");
+	    if (boardModel.setCell(x, y, playerMarks[currentPlayer])) {
+	    	setStatusMessage("Player " + playerMarks[currentPlayer] + " won!");
+	    	gameFinished = true;
+	    }
 	    currentPlayer = 1 - currentPlayer; // The next turn is by the other player.
 	}
   
@@ -177,8 +180,10 @@ public class TicTacToe extends JFrame implements ListSelectionListener
 	  
 	  @Override
 	  public void updateBoard(int x, int y, char symbol) throws RemoteException{
-		  if (boardModel.setCell(x, y, symbol))
-		      setStatusMessage("Player " + symbol + " won!");
+		  if (boardModel.setCell(x, y, symbol)) {
+			  setStatusMessage("Player " + symbol + " won!");
+			  gameFinished = true;
+		  }
 		  currentPlayer = 1-currentPlayer;
 	  }
 
