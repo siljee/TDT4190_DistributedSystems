@@ -25,9 +25,10 @@ public class TicTacToe extends JFrame implements ListSelectionListener
   private final JLabel statusLabel = new JLabel();
   private final char playerMarks[] = {'X', 'O'};
   private int currentPlayer = 0; // Player to set the next mark.
-  private boolean initialized = false;
+  private boolean gameStarted = false;
   private MoveServer opponent = null;
   private MoveServerImpl myself = null;
+  private int currentPlayerMark = 0;
   
 
   public static void main(String args[])
@@ -40,13 +41,8 @@ public class TicTacToe extends JFrame implements ListSelectionListener
 		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
-	  
-//	if(System.getSecurityManager()==null){
-//		System.setSecurityManager(new SecurityManager());
-//	}
 	
 	boolean server = true;
-	System.out.println(input.equalsIgnoreCase("server"));
 	if(!input.equalsIgnoreCase("server")){
 		server = false;
 	}
@@ -141,7 +137,11 @@ public class TicTacToe extends JFrame implements ListSelectionListener
    */
   public void valueChanged(ListSelectionEvent e)
   {
-		// Oppdatere mitt brett på vanlig måte
+	  if (!gameStarted) {
+		  currentPlayerMark = currentPlayer;
+		  gameStarted = true;
+	  }
+	  if (currentPlayerMark==currentPlayer) {
 		  if (e.getValueIsAdjusting())
 		      return;
 		    int x = board.getSelectedColumn();
@@ -153,7 +153,7 @@ public class TicTacToe extends JFrame implements ListSelectionListener
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-	  
+	  }
   }
 	
   private void updateBoardModel(int x, int y) {
@@ -179,6 +179,7 @@ public class TicTacToe extends JFrame implements ListSelectionListener
 	  public void updateBoard(int x, int y, char symbol) throws RemoteException{
 		  if (boardModel.setCell(x, y, symbol))
 		      setStatusMessage("Player " + symbol + " won!");
+		  currentPlayer = 1-currentPlayer;
 	  }
 
   }
